@@ -6,12 +6,11 @@ from sklearn.model_selection import train_test_split
 from sklearn.preprocessing import StandardScaler
 from tensorflow.keras.utils import to_categorical
 
-# Kendi yazdığımız modülleri çağırıyoruz
+# OWN MODULS
 from database import ANIMAL_DATABASE, THREAT_DATABASE, EVOLUTION_MAPPING, ATTRIBUTE_CATEGORIES
 from evolution_model import EvolutionModel
 
-# --- 1. VERİ YÜKLEME VE HAZIRLIK ---
-print(">>> Veri Yükleniyor...")
+# --- 1. DATA LOADING ---
 github_data_url = "https://raw.githubusercontent.com/ralolooafanxyaiml/neural-evolution-sim/refs/heads/main/data.csv"
 df = pd.read_csv(github_data_url)
 
@@ -26,8 +25,7 @@ scaler = StandardScaler()
 X_train_scaled = scaler.fit_transform(X_train)
 X_test_scaled = scaler.transform(X_test)
 
-# --- 2. MODEL KURULUMU VE EĞİTİM ---
-print(">>> Yapay Zeka Eğitiliyor...")
+# --- 2. AI MODEL ---
 input_feature_count = X_train_scaled.shape[1]
 output_class_count = y_train_encoded.shape[1]
 
@@ -45,9 +43,8 @@ evolution_sim.fit_model(
 )
 
 final_accuracy = evolution_sim.evaluate_model(X_test_scaled, y_test_encoded)
-print(f"\n>>> Model Hazır! Doğruluk Oranı: %{final_accuracy*100:.2f}")
 
-# --- 3. OYUN ARAYÜZÜ ---
+# --- 3. MACHINE STARTING  ---
 def start_game_interface():
     print("\n\n####################################################")
     print("#       AI EVOLUTION SIMULATOR (V2.0 OOP) - READY  #")
@@ -58,7 +55,7 @@ def start_game_interface():
         features = []
         animal_name_display = ""
         
-        # Hayvan Seçimi
+        # ANIMAL CHANGE
         while True:
             user_animal = input("\n>> ENTER ANIMAL NAME (or 'exit' to close): ").lower().strip()
             if user_animal == 'exit':
@@ -75,7 +72,7 @@ def start_game_interface():
 
         current_evolution_attributes = {} 
 
-        # Tehdit ve Evrim Döngüsü
+        # THREATS AND EVOLUTIONS
         while True:
             print(f"\n   --- Current Organism: {animal_name_display} ---")
             user_threat = input(">> ENTER THREAT (or type 'quit' to change animal): ").lower().strip()
@@ -93,13 +90,13 @@ def start_game_interface():
                 print("   Unknown Threat. Try: Cold, Heat, Virus, Predator...")
                 continue
 
-            # Tahmin (Predict)
+            # PREDICT
             input_vector = np.array([features + [float(threat_id)]])
             input_scaled = scaler.transform(input_vector)
             
             predicted_id = evolution_sim.predict_id(input_scaled)
 
-            # Sonuçları İşle
+            # RESULTS
             evolution_options = EVOLUTION_MAPPING.get(predicted_id, ["Error"])
             final_description = random.choice(evolution_options)
             
@@ -117,6 +114,7 @@ def start_game_interface():
                     print(f"      * {cat}: {desc}")
             print("-" * 50)
 
-# Oyunu Başlat
+# START
 if __name__ == "__main__":
+
     start_game_interface()
