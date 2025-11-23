@@ -53,3 +53,4 @@ class EvolutionModel:
         loss, accuracy = self.model.evaluate(X_test, y_test, verbose=0)
 
         return accuracy
+
