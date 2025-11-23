@@ -1,5 +1,4 @@
 # --- main.py ---
-# imported json, pickle.
 import pandas as pd
 import numpy as np
 import random
@@ -17,7 +16,7 @@ from tensorflow.keras.preprocessing.sequence import pad_sequences
 from database import ANIMAL_DATABASE, THREAT_DATABASE, EVOLUTION_MAPPING, ATTRIBUTE_CATEGORIES
 from evolution_model import EvolutionModel
 
-# --- 1. VISUAL DATA LOAD --- added evolution chatbot model!
+# --- 1. CHATBOT FUNCTION ---
 def evolution_chatbot_model():
     print("Loading neural pathways, please wait...")
 
@@ -37,6 +36,7 @@ def evolution_chatbot_model():
 
     except Exception as e:
         print(f"ERROR: {e}")
+        print("Make sure you ran 'chatbot_train.py' first!")
         return
 
     max_len = 20
@@ -54,11 +54,19 @@ def evolution_chatbot_model():
                                                  truncating='post', maxlen=max_len), verbose=0)
             tag = lbl_encoder.inverse_transform([np.argmax(result)])
             
+            # Find Response
+            response_found = False
             for i in data['intents']:
                 if i['tag'] == tag:
                     print(f"NEE: {np.random.choice(i['responses'])}")
+                    response_found = True
+                    break
+            
+            if not response_found:
+                 print("NEE: I didn't understand.")
+                 
         except:
-             print("NEE: ...")
+             print("NEE: (Processing Error)")
 
 def load_images_and_threats(df):
     image_data = []
@@ -84,9 +92,11 @@ def load_images_and_threats(df):
         if t in threat_images and len(threat_images[t]) > 0:
             image_data.append(random.choice(threat_images[t]))
             valid_indices.append(index)
+            
     return np.array(image_data), df.iloc[valid_indices]
     
-# --- 1. DATA ENCODING ---
+# Global Data Init
+print(">> Initializing Simulation Core...")
 github_data_url = "https://raw.githubusercontent.com/ralolooafanxyaiml/neural-evolution-sim/refs/heads/main/data.csv"
 raw_df = pd.read_csv(github_data_url)
 
@@ -96,7 +106,9 @@ X = df[["METABOLISM", "SKIN", "HABITAT", "SIZE", "DIET", "THREAT"]]
 y = df["EVOLUTION_TARGET"]
 
 # Correct Split (3 inputs -> 6 outputs)
-X_img_train, X_img_test, X_train, X_test, y_train, y_test = train_test_split(X_images, X, y, test_size=0.2, random_state=42)
+X_img_train, X_img_test, X_train, X_test, y_train, y_test = train_test_split(
+    X_images, X, y, test_size=0.2, random_state=42
+)
 
 y_train_encoded = to_categorical(y_train, num_classes=6)
 y_test_encoded = to_categorical(y_test, num_classes=6)
@@ -105,7 +117,7 @@ scaler = StandardScaler()
 X_train_scaled = scaler.fit_transform(X_train)
 X_test_scaled = scaler.transform(X_test)
 
-# --- 2. AI MODEL ---
+# --- 3. SIMULATION MODEL BUILD ---
 input_feature_count = X_train_scaled.shape[1]
 output_class_count = y_train_encoded.shape[1]
 
@@ -117,7 +129,7 @@ evolution_sim = EvolutionModel(
 
 evolution_sim.compile_model()
 
-# Training
+print(">> Training Simulation Model...")
 evolution_sim.fit_model(
     [X_train_scaled, X_img_train], y_train_encoded, 
     epochs=20, batch_size=32, 
@@ -126,7 +138,7 @@ evolution_sim.fit_model(
 
 final_accuracy = evolution_sim.evaluate_model([X_test_scaled, X_img_test], y_test_encoded)
 
-# --- 3. MACHINE STARTING ---
+# --- 4. MAIN INTERFACE ---
 def start_engine_interface():
     while True:
         print("\n\n####################################################")
@@ -137,12 +149,13 @@ def start_engine_interface():
         print("3. Quit")
         print("####################################################")
 
-        choice = input("Select Mode: ")
+        choice = input("Select Mode: ").strip()
 
         if choice == "2":
             evolution_chatbot_model()
 
         elif choice == "3":
+            print("Goodbye Master! Yubi yubi!")
             break
         
         elif choice == "1":
@@ -153,7 +166,7 @@ def start_engine_interface():
                 features = []
                 animal_name_display = ""
                 
-                # Animal Loop
+                # ANIMAL SELECTION LOOP
                 while True:
                     user_animal = input("\n>> ENTER ANIMAL NAME (or 'exit' to menu): ").lower().strip()
                     if user_animal == 'exit':
@@ -175,8 +188,8 @@ def start_engine_interface():
                 print("   [1] TEXT INPUT")
                 print("   [2] VISUAL INPUT")
                 mode = input(">> Mode (1/2): ").strip()
-         
-                # Threat Loop
+
+                # THREAT LOOP
                 while True:
                     print(f"\n   --- Current Organism: {animal_name_display} ---")
 
@@ -214,13 +227,14 @@ def start_engine_interface():
                             print("   Image Error! Using blank.")
                             input_img = np.zeros((1, 64, 64, 3))
 
+                    # PREDICT: Order must be [BIO, IMAGE] to match training!
                     biological_input = np.array([features]) 
                     input_scaled = scaler.transform(biological_input)
 
-                    # Predict
                     probs = evolution_sim.model.predict([input_scaled, input_img], verbose=0)
                     predicted_id = np.argmax(probs, axis=1)[0]
 
+                    # RESULTS
                     evolution_options = EVOLUTION_MAPPING.get(predicted_id, ["Error"])
                     final_description = random.choice(evolution_options)
                     
@@ -237,8 +251,10 @@ def start_engine_interface():
                         for cat, desc in current_evolution_attributes.items():
                             print(f"      * {cat}: {desc}")
                     print("-" * 50)
+        
         else:
-           print("Invalid Choice! Please write 1, 2 or 3.")
+            print("Invalid Choice! Please write 1, 2 or 3.")
 
+# START
 if __name__ == "__main__":
     start_engine_interface()
