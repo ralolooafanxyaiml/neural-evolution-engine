@@ -138,6 +138,16 @@ evolution_sim.fit_model(
 
 final_accuracy = evolution_sim.evaluate_model([X_test_scaled, X_img_test], y_test_encoded)
 
+# ----- GAN SETUP ---------
+try:
+    GENERATOR_MODEL: load_model("generator_model.h5", compile = False)
+    GENERATOR_READY = True
+    LATENT_DIM
+except:
+    GENERATOR_MODEL = None
+    GENERATOR_READY = False
+    LATENT_DIM = 100
+    
 # --- 4. MAIN INTERFACE ---
 def start_engine_interface():
     while True:
@@ -146,16 +156,50 @@ def start_engine_interface():
         print("####################################################")
         print("1. Start NEE Simulation (CNN/ANN)")
         print("2. Chat with NEE AI Assistant (NLP)")
-        print("3. Quit")
+        print("3. Generate New Threat Image (GANs)")
+        print("4. Quit")
         print("####################################################")
 
         choice = input("Select Mode: ").strip()
 
+        if choice == "3" and GENERATOR_READY:
+            print("/nStarting GANs Generator")
+            noise = np.random.normal(0, 1(1, LATENT_DIM))
+
+            generated_img_norm = GENERATOR_MODEL.predict(noise, verbose=0)[0]
+            generated_img_255 = ((generated_img_norm + 1) * 127.5).astype(np.uint8)
+
+            output_path = "synthetic_threat.png"
+            cv2.imwrite(output_path, generated_img_255)
+            print(f" New Synthetic Threat Generated: {output_path}")
+
+            try:
+                input_img = np.array([cv2.resize(generated_img_255, (64, 64)) / 255.0])
+                print("Analyzing Synthetic Threat...")
+
+                features = ANIMAL_DATABSASE["lion"][:5]
+                biological_input = np.array([features])
+                input_scaled = scaler.transform(biological_input)
+
+                probs = evolution_sim.model.predict([input_scaled, input_img], verbose=0)
+                predicted_id = np.argmax(probs, axis=1)[0]
+
+                final = random.choice(EVOLUTION_MAPPING.get(predicted_id, ["Error"]))
+
+                print("\n--- SYNTHETIC THREAT ANALYSIS RESULT---")
+                print(f"   EVOLUTION TRIGGERED: {ATTRIBUTE_CATEGORIES.get(predicted_id, "UNKNOWN")}")
+                print(f"   RESULT: {final}")
+
+            except Exception as e:
+                print("Error!")
+                                                                            
+        
+
         if choice == "2":
             evolution_chatbot_model()
 
-        elif choice == "3":
-            print("Goodbye Master! Yubi yubi!")
+        elif choice == "4":
+            print("Goodbye!)
             break
         
         elif choice == "1":
@@ -258,4 +302,5 @@ def start_engine_interface():
 # START
 if __name__ == "__main__":
     start_engine_interface()
+
 
